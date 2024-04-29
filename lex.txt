@@ -1,0 +1,128 @@
+lex
+
+counting lines
+
+%{
+#include<stdio.h>
+
+int space_count = 0;
+int word_count = 0;
+int line_count = 0;
+int char_count = 0;
+%}
+
+%%
+
+[\n] { line_count++; }
+[\t ] { space_count++; }
+[^\t\n ]+ { word_count++; char_count += yyleng; }
+
+%%
+
+int main(int argc, char* argv[]) {
+    printf("Enter the input:\n");
+    yylex();
+    char_count -= space_count; // Subtract spaces from the character count
+    printf("The number of lines: %d\n", line_count);
+    printf("The number of spaces: %d\n", space_count);
+    printf("The number of words: %d\n", word_count);
+    printf("The number of characters: %d\n", char_count);
+    return 0;
+}
+
+int yywrap() {
+    return 1;
+}
+
+
+
+simple calculator
+
+%{
+#include <stdio.h>
+#include <stdlib.h>
+
+int op = 0;
+float a, b;
+
+void digi() {
+    if(op == 0)
+        a = atof(yytext);
+    else {
+        b = atof(yytext);
+        switch(op) {
+            case 1: a = a + b; break;
+            case 2: a = a - b; break;
+            case 3: a = a * b; break;
+            case 4:
+                if (b != 0)
+                    a = a / b;
+                else
+                    printf("Error: Division by zero\n");
+                break;
+            case 5:
+                for (int i = 1; i < b; i++)
+                    a *= a;
+                break;
+        }
+        op = 0;
+    }
+}
+%}
+
+dig [0-9]+|([0-9]*)[.]([0-9]+)
+add "+"
+sub "-"
+mul "*"
+div "/"
+pow "^"
+ln "\n"
+
+%%
+
+{dig} { digi(); printf("%s\n", yytext); }
+{add} { op = 1; }
+{sub} { op = 2; }
+{mul} { op = 3; }
+{div} { op = 4; }
+{pow} { op = 5; }
+{ln} { printf("\n The Answer: %f\n\n", a); }
+
+%%
+
+int main(int argc, char *argv[]) {
+    yylex();
+    return 0;
+}
+
+int yywrap() {
+    return 1;
+}
+
+
+
+extract tokens
+
+
+%{
+#include<stdio.h>
+%}
+%%
+auto|double|int|struct|break|else|long|switch|case|enum|register|typedef|char|extern|return|union|continue|for|signed|void|do|if|static|while|default|goto|sizeof|volatile|const|float|short|main|void {ECHO; printf(" KEYWORD\n\n");}
+[{};,()] {ECHO; printf(" SEPARATOR\n\n");}
+[+-/=*%] {ECHO; printf(" OPERATOR\n\n");}
+([a-zA-Z][0-9])+|[a-zA-Z]* {ECHO; printf(" Identifier\n\n");}
+.|\n ;
+%%
+int yywrap()
+{ return 1;
+}
+int main(void)
+{
+yylex();
+return 0;
+}
+
+
+
+

@@ -1,0 +1,263 @@
+identifiers
+
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+#define MAX_TOKEN_LENGTH 20
+#define MAX_EXPRESSION_LENGTH 100
+typedef enum {
+IDENTIFIER,
+OPERATOR,
+NUMBER,
+UNKNOWN
+} TokenType;
+typedef struct {
+char token[MAX_TOKEN_LENGTH];
+TokenType type;
+} Symbol;
+int isDelimiter(char ch) {
+return ch == ' ' || ch == ';' || ch == ',' || ch == '+' || ch == '-' || ch == '/' || ch == '=' || ch == '*' || ch== '%';
+}
+int isOperator(char ch) {
+return ch == '+' || ch == '-' || ch == '/' || ch == '=' || ch == '*' || ch== '%';
+}
+TokenType determineTokenType(char* token) {
+if (strlen(token) == 1 && isOperator(token[0])) {
+return OPERATOR;
+}
+if (isdigit(token[0])) {
+return NUMBER;
+}
+return IDENTIFIER;
+}
+void addToken(Symbol symbols[], int* count, char* token) {
+if (strlen(token) > 0) {
+strcpy(symbols[*count].token, token);
+symbols[*count].type = determineTokenType(token);
+(*count)++;
+}
+}
+void tokenizeExpression(char* expression, Symbol symbols[], int* count) {
+char token[MAX_TOKEN_LENGTH];
+int tokenLength = 0;
+for (int i = 0; i < strlen(expression); i++) {
+if (isDelimiter(expression[i])) {
+token[tokenLength] = '\0';
+addToken(symbols, count, token);
+tokenLength = 0;
+if (!isspace(expression[i])) {
+char op[2] = {expression[i], '\0'};
+addToken(symbols, count, op);
+}
+} else {
+token[tokenLength++] = expression[i];
+}
+}
+token[tokenLength] = '\0';
+addToken(symbols, count, token);
+}
+void displaySymbolTable(Symbol symbols[], int count) {
+printf("Symbol Table:\n");
+printf("| %-10s | %-12s |\n", "Token", "Type");
+printf("-----------------------\n");
+for (int i = 0; i < count; i++) {
+printf("| %-10s | %-12s |\n", symbols[i].token,
+(symbols[i].type == IDENTIFIER) ? "Identifier" :
+(symbols[i].type == OPERATOR) ? "Operator" :
+(symbols[i].type == NUMBER) ? "Number" : "Unknown");
+}
+}
+int main() {
+char expression[MAX_EXPRESSION_LENGTH];
+Symbol symbols[MAX_EXPRESSION_LENGTH];
+int count = 0;
+printf("Enter an expression: ");
+fgets(expression, MAX_EXPRESSION_LENGTH, stdin);
+size_t len = strlen(expression);
+if (len > 0 && expression[len - 1] == '\n') {
+expression[len - 1] = '\0';
+}
+tokenizeExpression(expression, symbols, &count);
+displaySymbolTable(symbols, count);
+return 0;
+}
+
+
+
+patterns,identifers,numbers
+
+#include <stdio.h>
+#include <ctype.h>
+#include <string.h>
+
+typedef enum {
+    START,
+    IN_DIGIT,
+    IN_IDENTIFIER,
+    IN_OPERATOR,
+    IN_SPECIAL_CHAR,
+    IN_STRING_LITERAL,
+    IN_COMMENT,
+    DONE
+} State;
+
+typedef enum {
+    TOKEN_INT,
+    TOKEN_IDENTIFIER,
+    TOKEN_OPERATOR,
+    TOKEN_SPECIAL_CHAR,
+    TOKEN_STRING_LITERAL,
+    TOKEN_COMMENT,
+    TOKEN_UNKNOWN
+} TokenType;
+
+int isOperator(char c) {
+    return (c == '+' || c == '-' || c == '*' || c == '/' || c == '%' || c == '=');
+}
+
+int isSpecialChar(char c) {
+    return (c == '(' || c == ')' || c == '{' || c == '}' || c == ',' || c == ';');
+}
+
+TokenType lex(char* input, int* length) {
+    State currentState = START;
+    int i = 0;
+    while (currentState != DONE) {
+        char currentChar = input[i];
+        switch (currentState) {
+            case START:
+                if (isdigit(currentChar)) {
+                    currentState = IN_DIGIT;
+                } else if (isalpha(currentChar) || currentChar == '_') {
+                    currentState = IN_IDENTIFIER;
+                } else if (isOperator(currentChar)) {
+                    currentState = IN_OPERATOR;
+                } else if (isSpecialChar(currentChar)) {
+                    currentState = IN_SPECIAL_CHAR;
+                } else if (currentChar == '"') {
+                    currentState = IN_STRING_LITERAL;
+                } else if (currentChar == '/') {
+                    currentState = IN_COMMENT;
+                } else if (isspace(currentChar)) {
+                    // Skip whitespace
+                    i++;
+                    continue;
+                } else if (currentChar == '\0') {
+                    currentState = DONE;
+                } else {
+                    return TOKEN_UNKNOWN;
+                }
+                break;
+            case IN_DIGIT:
+                if (!isdigit(currentChar)) {
+                    *length = i;
+                    return TOKEN_INT;
+                }
+                break;
+            case IN_IDENTIFIER:
+                if (!(isalnum(currentChar) || currentChar == '_')) {
+                    *length = i;
+                    return TOKEN_IDENTIFIER;
+                }
+                break;
+            case IN_OPERATOR:
+                if (!isOperator(currentChar)) {
+                    *length = i;
+                    return TOKEN_OPERATOR;
+                }
+                break;
+            case IN_SPECIAL_CHAR:
+                if (!isSpecialChar(currentChar)) {
+                    *length = i;
+                    return TOKEN_SPECIAL_CHAR;
+                }
+                break;
+            case IN_STRING_LITERAL:
+                if (currentChar == '"') {
+                    *length = i + 1; // Include the closing quote
+                    return TOKEN_STRING_LITERAL;
+                }
+                break;
+            case IN_COMMENT:
+                if (currentChar == '\n' || currentChar == '\0') {
+                    *length = i;
+                    return TOKEN_COMMENT;
+                }
+                break;
+            default:
+                return TOKEN_UNKNOWN;
+        }
+        i++;
+    }
+    switch (currentState) {
+        case IN_OPERATOR:
+            *length = i;
+            return TOKEN_OPERATOR;
+        case IN_SPECIAL_CHAR:
+            *length = i;
+            return TOKEN_SPECIAL_CHAR;
+        case IN_IDENTIFIER:
+            *length = i;
+            return TOKEN_IDENTIFIER;
+        case IN_DIGIT:
+            *length = i;
+            return TOKEN_INT;
+        default:
+            return TOKEN_UNKNOWN;
+    }
+}
+
+void displaySymbolTable(char* expression) {
+    printf("Symbol Table:\n");
+    printf("| Token      | Type         |\n");
+    printf("-------------------------\n");
+    int length;
+    TokenType tokenType;
+    do {
+        while (*expression && isspace(*expression)) {
+            expression++;
+        }
+        if (*expression) {
+            tokenType = lex(expression, &length);
+            switch (tokenType) {
+                case TOKEN_INT:
+                    printf("| %-10.*s | %-12s |\n", length, expression, "Number");
+                    break;
+                case TOKEN_IDENTIFIER:
+                    printf("| %-10.*s | %-12s |\n", length, expression, "Identifier");
+                    break;
+                case TOKEN_OPERATOR:
+                    printf("| %-10.*s | %-12s |\n", length, expression, "Operator");
+                    break;
+                case TOKEN_SPECIAL_CHAR:
+                    printf("| %-10.*s | %-12s |\n", length, expression, "Special Char");
+                    break;
+                case TOKEN_STRING_LITERAL:
+                    printf("| %-10.*s | %-12s |\n", length, expression, "String Literal");
+                    break;
+                case TOKEN_COMMENT:
+                    printf("| %-10.*s | %-12s |\n", length, expression, "Comment");
+                    break;
+                case TOKEN_UNKNOWN:
+                    printf("| %-10.*s | %-12s |\n", length, expression, "Unknown");
+                    break;
+            }
+            expression += length;
+        }
+    } while (*expression);
+}
+
+int main() {
+    char expression[100];
+    printf("Enter an expression: ");
+    fgets(expression, sizeof(expression), stdin);
+    size_t len = strlen(expression);
+    if (len > 0 && expression[len - 1] == '\n') {
+        expression[len - 1] = '\0';
+    }
+    displaySymbolTable(expression);
+    return 0;
+}
+
+
+
